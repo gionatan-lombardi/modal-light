@@ -1,0 +1,23 @@
+{
+  "author": {
+    "name": "Gionatan Lombardi",
+    "url": "https://github.com/gionatan-lombardi"
+  },
+  "name": "modal-light",
+  "description": "A super simple modal script manager.",
+  "version": "0.0.1",
+  "main": "src/modal-light.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/gionatan-lombardi/modal-light.git"
+  },
+  "bugs": {
+    "url": "https://github.com/gionatan-lombardi/modal-light/issues"
+  },
+  "keywords": [
+    "JavaScript",
+    "JavaScript Plugin",
+    "modal",
+    "modal plugin"
+  ]
+}
