@@ -1,5 +1,3 @@
-var utility = require('./utility.js');
-
 /*!
  * modal-light 
  * v1.0.0
@@ -12,6 +10,70 @@ var utility = require('./utility.js');
 
 'use strict';
    
+// Utility functions
+
+/**
+ * forEachNode loops over a DOM NodeList
+ * and executes a provided function once per HTML element. 
+ * @param {NodeList} nodeList - an existing DOM NodeList
+ * @param {function} todo - the function to execute once per element
+ * @returns {NodeList} the updated NodeList
+ * @see {@link https://developer.mozilla.org/en-US/docs/Web/API/NodeList#Example}
+ * @example
+ * // returns [li.element-0, li.element-1, li]
+ * <ul class="forEachNode">
+ *   <li>First</li>
+ *   <li>Second</li>
+ *   <li>Third</li>
+ * </ul>
+ * var nodeList1 = document.querySelectorAll('.forEachNode li');
+ * var nodeList1 = jVg.forEachNode(nodeList1, function(el, i) {
+ *   if (i == 2)
+ *     return 'break';
+ *   el.classList.add('element-' + i);
+ * })
+ */
+function forEachNode(nodeList, todo) {
+  for (var i = 0, l = nodeList.length; i < l; ++i) {
+    var el = nodeList[i];
+    // The callback takes as params the current element and the index
+    var o = todo(el,i);
+    // If the callback returns the string "break" the loop'll be stopped
+    if ( o === "break") break;
+  }
+  return nodeList;
+}
+
+/**
+ * extend takes a list of objects
+ * and returns a new one with the objects merged,
+ * If it finds properties with the same name, it overwrites the oldest.
+ * @param {object} out - a list of objects
+ * @returns {object} out - an object with the properties
+ * merged or overwritten.
+ * @see  {@link http://youmightnotneedjquery.com/#deep_extend}
+ * @example
+ * // returns {'bar': true, 'baz': [1,2,3], 'foo': 3}
+ * jVg.extend({'foo': 2, 'bar': true}, {'foo': 3, 'baz': [1,2,3]})
+ */
+function extend(out) {
+  out = out || {};
+  for (var i = 1; i < arguments.length; i++) {
+    var obj = arguments[i];
+    if (!obj)
+      continue;
+    for (var key in obj) {
+      if (obj.hasOwnProperty(key)) {
+        if (typeof obj[key] === 'object')
+          out[key] = extend(out[key], obj[key]);
+        else
+          out[key] = obj[key];
+      }
+    }
+  }
+  return out;
+}
+
 var buildObj = {
 
   handleEvent: function(e) {
@@ -23,6 +85,9 @@ var buildObj = {
 
     // Gets the href attribute
     var elHref = e.currentTarget.getAttribute('href');
+
+    // Autoplay options for video links
+    var autoplay = e.currentTarget.dataset.autoplay;
 
     // Checks if the href is not a page anchor
     if ( elHref == "#" ) {
@@ -40,7 +105,7 @@ var buildObj = {
 
     // Add a class to the modal for css transitions
     setTimeout( function () {
-      utility.addClass(self.modal, 'is-visible')
+      self.modal.classList.add('is-visible');
     }, 0)
 
     // Adds the eventListener to the closer
@@ -48,10 +113,16 @@ var buildObj = {
       self.closeModal(e, self);
     });
 
-    // Checks if it'a a Youtube video
+    // Checks if it's a Youtube video
     if ( self.isYoutubeVideo(elHref) ) {
-      self.createYoutubeEmbed( modalInner, self.isYoutubeVideo(elHref) )
+      self.createYoutubeEmbed( modalInner, self.isYoutubeVideo(elHref), autoplay )
     }
+
+    // Checks if it's a Vimeo video
+    if ( self.isVimeoVideo(elHref) ) {
+      self.createVimeoEmbed( modalInner, self.isVimeoVideo(elHref), autoplay )
+    }
+
 
   },
 
@@ -66,9 +137,14 @@ var buildObj = {
    */
   closeModal: function closeModal(e, self) {
 
-    utility.removeClass(self.modal, 'is-visible');
-    self.videoPlayer.stopVideo();
-    self.videoPlayer.destroy();
+    self.modal.classList.remove('is-visible');
+    if (self.videoPlayer) {
+      self.videoPlayer.stopVideo();
+      self.videoPlayer.destroy();
+    }
+    if (self.vimeoPlayer) {
+      self.vimeoPlayer.destroy();
+    }
     setTimeout( function () {
       var removedModal = document.body.removeChild(self.modal);
     }, 1000);
@@ -87,7 +163,7 @@ var buildObj = {
   createElement: function createElement(tag, className, elToAppend) {
 
     var el = document.createElement(tag);
-    if (className) utility.addClass(el, className)
+    if (className) el.classList.add(className);
     elToAppend.appendChild(el);
     return el;
 
@@ -102,7 +178,7 @@ var buildObj = {
    * createYoutubeEmbed(document.body, "r4SsoTaOIKo"); // returns the videoContainer DOM node
    * @url: https://developers.google.com/youtube/iframe_api_reference
    */
-  createYoutubeEmbed: function createYoutubeEmbed(el, videoId) {
+  createYoutubeEmbed: function createYoutubeEmbed(el, videoId, autoplay) {
 
     var self = this;
 
@@ -114,7 +190,7 @@ var buildObj = {
     // 2. This code loads the IFrame Player API code asynchronously if not present.
     var scriptPresent = false;
     var allScriptTag = document.getElementsByTagName('script');
-    utility.forEachNodeList(allScriptTag, function(el, i) {
+    forEachNode(allScriptTag, function(el, i) {
       if (el.src == "https://www.youtube.com/iframe_api") scriptPresent = true;
     })
 
@@ -153,11 +229,116 @@ var buildObj = {
 
     // 4. The API will call this function when the video player is ready.
     window.onPlayerReady = function(event) {
-      event.target.playVideo();
+      if (typeof autoplay !== 'undefined' && autoplay === "true")
+        event.target.playVideo();
     }
 
     return videoContainer;
  
+  },
+
+  /**
+   * createVimeoEmbed creates a Vimeo video player with the Vimeo API.
+   * @param {DOM node} el - the DOM node where to append the video frame.
+   * @param {string} videoId - the youtube video id.
+   * @returns {DOM node} returns the video player DOM node
+   * @example
+   * createVimeoEmbed(document.body, "r4SsoTaOIKo"); // returns the videoContainer DOM node
+   * @url: https://developer.vimeo.com/player/js-api
+   */
+  createVimeoEmbed: function createVimeoEmbed(el, videoId, autoplay) {
+
+    var self = this;
+
+    var videoContainer = self.createElement('div', "ModalLight-videoContainer", el);
+    var videoDiv = self.createElement('div', "ModalLight-videoDiv", videoContainer);
+    var playerId = "ModalLightVideoId" + (Math.ceil(Math.random()*100)) + (Math.ceil(Math.random()*100));
+
+    videoDiv.innerHTML = '<iframe id="'+playerId+'" src="https://player.vimeo.com/video/'+videoId+'?api=1&player_id='+playerId+'" frameborder="0" webkitallowfullscreen mozallowfullscreen allowfullscreen></iframe>';
+    var player = videoDiv.querySelector('iframe');
+    var playerOrigin = '*';
+
+    // http://codepen.io/bdougherty/pen/FEuDd?editors=1010
+
+    // Listen for messages from the player
+    window.addEventListener('message', onMessageReceived, false);
+
+    // Handle messages received from the player
+    function onMessageReceived(event) {
+        // Handle messages from the vimeo player only
+        if (!(/^https?:\/\/player.vimeo.com/).test(event.origin)) {
+            return false;
+        }
+        
+        if (playerOrigin === '*') {
+            playerOrigin = event.origin;
+        }
+        
+        var data = JSON.parse(event.data);
+        
+        switch (data.event) {
+            case 'ready':
+                onReady();
+                self.vimeoPlayer = {
+                  destroy: function() {
+                    post('pause');
+                    window.removeEventListener('message', onMessageReceived);
+                  }
+                };
+                break;
+               
+            case 'playProgress':
+                onPlayProgress(data.data);
+                break;
+                
+            case 'pause':
+                onPause();
+                break;
+               
+            case 'finish':
+                onFinish();
+                break;
+        }
+
+    }
+
+    // Helper function for sending a message to the player
+    function post(action, value) {
+        var data = {
+          method: action
+        };
+        
+        if (value) {
+            data.value = value;
+        }
+        
+        var message = JSON.stringify(data);
+        player.contentWindow.postMessage(message, playerOrigin);
+    }
+
+    function onReady() {
+        post('addEventListener', 'pause');
+        post('addEventListener', 'finish');
+        post('addEventListener', 'playProgress');
+        if (typeof autoplay !== 'undefined' && autoplay === "true")
+          post('play');
+    }
+
+    function onPause() {
+      console.log('Vimeo video paused');
+    }
+
+    function onFinish() {
+      console.log('Vimeo video finished');
+    }
+
+    function onPlayProgress(data) {
+      console.log('Vimeo video '+data.seconds+'s played');
+    }
+    
+    console.log(videoContainer);
+    return videoContainer;
+
   },
 
   /**
@@ -172,16 +353,50 @@ var buildObj = {
    */
   isYoutubeVideo: function isYoutubeVideo(url) {
 
-    var p = /^(?:https?:\/\/)?(?:www\.)?(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})(?:\S+)?$/;
-    return (url.match(p)) ? RegExp.$1 : false;
+    var r = /^(?:https?:\/\/)?(?:www\.)?(?:youtu\.be\/|youtube\.com\/(?:embed\/|v\/|watch\?v=|watch\?.+&v=))((\w|-){11})(?:\S+)?$/;
+    return (url.match(r)) ? RegExp.$1 : false;
 
+  },
+
+  /**
+   * isVimeoVideo matches (and returns) the video Id 
+   * of any valid Vimeo Url, given as input string.
+   * @param {string} url - any url string.
+   * @returns {boolean || id} the video id if the url string is a vimeo valid url
+   * @example
+   * isVimeoVideo("https://vimeo.com/cale/onward"); // returns 155624292
+   * @author: l2aelba <http://stackoverflow.com/users/622813/l2aelba>
+   * @url: http://stackoverflow.com/questions/13286785/get-video-id-from-vimeo-url/37695721#37695721
+   */
+  isVimeoVideo: function isvimeoVideo(url) {
+
+    var r = /^(?:https?:\/\/|\/\/)?(?:www\.)?(?:vimeo\.com)/;
+
+    if (!url.match(r))
+      return false;
+
+    var id = false;
+    var request = new XMLHttpRequest();
+    request.open('GET', 'https://vimeo.com/api/oembed.json?url='+url , false);
+    request.onload = function() {
+      if (request.status >= 200 && request.status < 400) {
+        var response = JSON.parse(request.responseText);
+        if(response.video_id) {
+          id = response.video_id;
+        }
+      } else if (request.status >= 400) {
+        console.log('Not a Vimeo Video.')
+      }
+    };
+    request.send();
+    return id;
   },
 
   destroy: function destroy() {
 
     var self = this;
     // Event Listeners removing
-    utility.forEachNodeList(self.triggers, function (el, i) {
+    forEachNode(self.triggers, function (el, i) {
       el.removeEventListener('click', self);
     });
 
@@ -205,7 +420,7 @@ var buildObj = {
     // If there are no openers silently exits the library
     if (!self.triggers.length) return;
 
-    utility.forEachNodeList(self.triggers, function (el, i) {
+    forEachNode(self.triggers, function (el, i) {
       el.addEventListener('click', self);
     });
 
@@ -223,7 +438,7 @@ function modalLight(element, cstOptions) {
   var defaultOptions = {
     modalClass: '.ModalLight-modal'
   }
-  var options = utility.extend(defaultOptions, cstOptions);
+  var options = extend(defaultOptions, cstOptions);
   var o = Object.create(buildObj);
   o.options = options;
 
