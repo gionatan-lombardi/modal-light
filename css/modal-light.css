@@ -1,0 +1,120 @@
+/* ==========================================================================
+   Modal
+   ========================================================================== */
+
+.ModalLight-modal {
+  position: fixed;
+  z-index: 100;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: -webkit-box;
+  display: -ms-flexbox;
+  display: flex;
+  background-color: #000;
+  background-color: rgba(0,0,0,0.9);
+  -webkit-box-align: center;
+      -ms-flex-align: center;
+          align-items: center;
+  -webkit-box-pack: center;
+      -ms-flex-pack: center;
+          justify-content: center;
+  opacity: 0;
+  -webkit-transition: opacity 0.5s ease-in-out;
+  transition: opacity 0.5s ease-in-out;
+}
+
+.ModalLight-modal.is-visible {
+  opacity: 1;
+}
+
+.ModalLight-inner {
+  max-width: 1280px;
+  -webkit-box-flex: 0;
+      -ms-flex: 0 1 1280px;
+          flex: 0 1 1280px;
+  padding: 10px;
+}
+
+.ModalLight-videoContainer {
+  height: 0;
+  padding-bottom: 56.25%;
+  width: 100%;
+  position: relative;
+}
+
+.ModalLight-videoContainer iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.ModalLight-closer {
+  background: none;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  line-height: 1.4;
+  overflow: visible;
+  padding: 0;
+  -webkit-appearance: button;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  position: relative;
+  width: 50px;
+  height: 50px;
+  position: absolute;
+  top: 0;
+  right: 0;
+}
+
+.ModalLight-closer:focus {
+  outline: none;
+}
+
+.ModalLight-closer::before,
+.ModalLight-closer::after {
+  background-color: #fff;
+  top: 50%;
+  left: 50%;
+  -webkit-transform: translate(-50%, -50%);
+          transform: translate(-50%, -50%);
+  content: "";
+  height: 2px;
+  margin: auto;
+  position: absolute;
+  -webkit-transition: all 0.2s cubic-bezier(0.9, 0.03, 0.7, 0.22) 0.2s;
+  transition: all 0.2s cubic-bezier(0.9, 0.03, 0.7, 0.22) 0.2s;
+  width: 50%;
+}
+
+.ModalLight-closer::before {
+  -webkit-transform: translate(-50%, -50%) rotate(45deg);
+          transform: translate(-50%, -50%) rotate(45deg)
+}
+
+.ModalLight-closer::after {
+  -webkit-transform: translate(-50%, -50%) rotate(-45deg);
+          transform: translate(-50%, -50%) rotate(-45deg)
+}
+
+@media only screen and (min-width: 768px) {
+
+  .ModalLight-inner {
+    padding: 30px;
+  }
+
+}
+
+@media only screen and (min-width: 1024px) {
+
+  .ModalLight-inner {
+    padding: 50px;
+  }
+
+}

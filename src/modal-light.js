@@ -144,6 +144,7 @@ var buildObj = {
     }
     if (self.vimeoPlayer) {
       self.vimeoPlayer.destroy();
+      self.vimeoPlayer = false;
     }
     setTimeout( function () {
       var removedModal = document.body.removeChild(self.modal);
@@ -286,18 +287,6 @@ var buildObj = {
                   }
                 };
                 break;
-               
-            case 'playProgress':
-                onPlayProgress(data.data);
-                break;
-                
-            case 'pause':
-                onPause();
-                break;
-               
-            case 'finish':
-                onFinish();
-                break;
         }
 
     }
@@ -324,19 +313,6 @@ var buildObj = {
           post('play');
     }
 
-    function onPause() {
-      console.log('Vimeo video paused');
-    }
-
-    function onFinish() {
-      console.log('Vimeo video finished');
-    }
-
-    function onPlayProgress(data) {
-      console.log('Vimeo video '+data.seconds+'s played');
-    }
-    
-    console.log(videoContainer);
     return videoContainer;
 
   },
